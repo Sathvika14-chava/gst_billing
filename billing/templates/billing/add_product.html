@@ -1,0 +1,50 @@
+{% extends 'billing/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-box-seam me-2 text-primary"></i>{{ title }}</div>
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Product / Service Name *</label>
+              {{ form.name }}
+            </div>
+            <div class="col-12">
+              <label class="form-label">Description</label>
+              {{ form.description }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Price (₹, excl. GST) *</label>
+              {{ form.price }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">GST Rate *</label>
+              {{ form.gst_rate }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Unit</label>
+              {{ form.unit }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">HSN / SAC Code</label>
+              {{ form.hsn_code }}
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-circle me-1"></i>Save Product
+            </button>
+            <a href="{% url 'product_list' %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

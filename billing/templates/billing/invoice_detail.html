@@ -1,0 +1,188 @@
+{% extends 'billing/base.html' %}
+{% block title %}{{ invoice.invoice_number }}{% endblock %}
+{% block page_title %}Invoice {{ invoice.invoice_number }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  @media print {
+    .sidebar, .topbar, .no-print { display: none !important; }
+    .main-wrap { margin-left: 0 !important; }
+    .page-content { padding: 0 !important; }
+    .invoice-card { box-shadow: none !important; border: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="no-print d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <a href="{% url 'invoice_list' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Back to Invoices
+  </a>
+  <div class="d-flex gap-2">
+    <!-- Status Update -->
+    <form method="post" action="{% url 'update_invoice_status' invoice.pk %}" class="d-flex gap-2">
+      {% csrf_token %}
+      <select name="status" class="form-select form-select-sm" style="width:auto">
+        {% for val, label in invoice.STATUS_CHOICES %}
+        <option value="{{ val }}" {% if invoice.status == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
+    </form>
+    <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-printer me-1"></i>Print
+    </button>
+    <a href="{% url 'invoice_pdf' invoice.pk %}" class="btn btn-sm btn-danger">
+      <i class="bi bi-file-pdf me-1"></i>Download PDF
+    </a>
+    <form method="post" action="{% url 'delete_invoice' invoice.pk %}" class="d-inline"
+          onsubmit="return confirm('Delete this invoice? This cannot be undone.')">
+      {% csrf_token %}
+      <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+    </form>
+  </div>
+</div>
+
+<!-- Invoice Card -->
+<div class="card invoice-card" style="max-width:860px;margin:0 auto">
+  <!-- Header -->
+  <div class="invoice-header">
+    <div class="row align-items-start">
+      <div class="col-7">
+        <div style="font-size:24px;font-weight:800;letter-spacing:-0.5px">{{ company.name }}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:4px">{{ company.address }}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.7)">
+          GSTIN: {{ company.gstin }} &nbsp;|&nbsp; {{ company.phone }}
+        </div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.7)">{{ company.email }}</div>
+      </div>
+      <div class="col-5 text-end">
+        <div style="font-size:13px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:2px">Tax Invoice</div>
+        <div style="font-size:28px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-top:4px">{{ invoice.invoice_number }}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:4px">Date: {{ invoice.date|date:"d M Y" }}</div>
+        {% if invoice.due_date %}
+        <div style="font-size:13px;color:rgba(255,255,255,0.7)">Due: {{ invoice.due_date|date:"d M Y" }}</div>
+        {% endif %}
+        <div style="margin-top:8px">
+          <span style="background:rgba(255,255,255,0.15);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase">
+            {{ invoice.get_status_display }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Billing Info -->
+  <div class="invoice-body border-bottom">
+    <div class="row">
+      <div class="col-6">
+        <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Bill To</div>
+        <div style="font-size:16px;font-weight:700">{{ invoice.customer.name }}</div>
+        <div style="font-size:13px;color:#64748b;margin-top:2px">{{ invoice.customer.address }}</div>
+        <div style="font-size:13px;color:#64748b">{{ invoice.customer.state }}</div>
+        <div style="font-size:13px;color:#64748b">📞 {{ invoice.customer.phone }}</div>
+        {% if invoice.customer.gst_number %}
+        <div style="font-size:13px;font-weight:600;margin-top:6px">GSTIN: {{ invoice.customer.gst_number }}</div>
+        {% endif %}
+      </div>
+      <div class="col-6 text-end">
+        <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">GST Type</div>
+        {% if invoice.is_intra_state %}
+        <span style="background:#ecfdf5;color:#059669;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700">
+          ✓ Intra-State (CGST + SGST)
+        </span>
+        {% else %}
+        <span style="background:#fef3c7;color:#92400e;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700">
+          ⚡ Inter-State (IGST)
+        </span>
+        {% endif %}
+        <div style="font-size:13px;color:#64748b;margin-top:8px">Seller State: {{ company.state }}</div>
+        <div style="font-size:13px;color:#64748b">Buyer State: {{ invoice.customer.state }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Items Table -->
+  <div class="invoice-body border-bottom">
+    <div class="table-responsive">
+      <table class="table mb-0" style="font-size:13px">
+        <thead>
+          <tr style="background:#f8fafc">
+            <th style="padding:10px 8px;font-weight:700;font-size:11px;text-transform:uppercase;color:#64748b;letter-spacing:0.5px">#</th>
+            <th style="padding:10px 8px;font-weight:700;font-size:11px;text-transform:uppercase;color:#64748b">Item</th>
+            <th style="padding:10px 8px;font-weight:700;font-size:11px;text-transform:uppercase;color:#64748b">HSN</th>
+            <th class="text-end" style="padding:10px 8px;font-weight:700;font-size:11px;text-transform:uppercase;color:#64748b">Qty</th>
+            <th class="text-end" style="padding:10px 8px;font-weight:700;font-size:11px;text-transform:uppercase;color:#64748b">Rate (₹)</th>
+            <th class="text-end" style="padding:10px 8px;font-weight:700;font-size:11px;text-transform:uppercase;color:#64748b">Taxable</th>
+            <th class="text-end" style="padding:10px 8px;font-weight:700;font-size:11px;text-transform:uppercase;color:#64748b">GST %</th>
+            <th class="text-end" style="padding:10px 8px;font-weight:700;font-size:11px;text-transform:uppercase;color:#64748b">Tax (₹)</th>
+            <th class="text-end" style="padding:10px 8px;font-weight:700;font-size:11px;text-transform:uppercase;color:#64748b">Total (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr style="{% if forloop.counter|divisibleby:2 %}background:#fafafa;{% endif %}">
+            <td style="padding:10px 8px;color:#94a3b8">{{ forloop.counter }}</td>
+            <td style="padding:10px 8px"><strong>{{ item.product.name }}</strong></td>
+            <td style="padding:10px 8px;font-family:monospace;color:#64748b">{{ item.product.hsn_code|default:"—" }}</td>
+            <td class="text-end" style="padding:10px 8px">{{ item.quantity }}</td>
+            <td class="text-end mono" style="padding:10px 8px">{{ item.price }}</td>
+            <td class="text-end mono" style="padding:10px 8px">{{ item.taxable_amount }}</td>
+            <td class="text-end" style="padding:10px 8px"><span class="badge bg-secondary">{{ item.gst_rate }}%</span></td>
+            <td class="text-end mono" style="padding:10px 8px">{{ item.tax_amount }}</td>
+            <td class="text-end mono fw-bold" style="padding:10px 8px">{{ item.total_price }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Totals -->
+  <div class="invoice-body">
+    <div class="row">
+      <div class="col-6">
+        {% if invoice.notes %}
+        <div style="font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Notes</div>
+        <div style="font-size:13px;color:#475569">{{ invoice.notes }}</div>
+        {% endif %}
+        <div style="font-size:12px;margin-top:16px;color:#94a3b8;font-style:italic">
+          Amount in words:<br>
+          <strong style="color:#475569">{{ amount_words }}</strong>
+        </div>
+      </div>
+      <div class="col-6">
+        <table style="width:100%;font-size:14px">
+          <tr>
+            <td style="padding:5px 0;color:#64748b">Subtotal</td>
+            <td class="text-end mono">₹{{ invoice.subtotal|floatformat:2 }}</td>
+          </tr>
+          {% if invoice.is_intra_state %}
+          <tr>
+            <td style="padding:5px 0;color:#64748b">CGST</td>
+            <td class="text-end mono">₹{{ invoice.cgst|floatformat:2 }}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0;color:#64748b">SGST</td>
+            <td class="text-end mono">₹{{ invoice.sgst|floatformat:2 }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td style="padding:5px 0;color:#64748b">IGST</td>
+            <td class="text-end mono">₹{{ invoice.igst|floatformat:2 }}</td>
+          </tr>
+          {% endif %}
+          <tr style="border-top:2px solid #0f172a">
+            <td style="padding:10px 0 5px;font-size:18px;font-weight:800">TOTAL</td>
+            <td class="text-end mono" style="font-size:22px;font-weight:800;color:#0f172a">₹{{ invoice.total_amount|floatformat:2 }}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;padding-top:16px;border-top:1px dashed #e2e8f0;text-align:center;font-size:12px;color:#94a3b8">
+      This is a computer-generated invoice. No signature required.
+    </div>
+  </div>
+</div>
+{% endblock %}

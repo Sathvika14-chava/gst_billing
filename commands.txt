@@ -1,0 +1,2 @@
+Unauthorised success error in activating virtual environment
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process

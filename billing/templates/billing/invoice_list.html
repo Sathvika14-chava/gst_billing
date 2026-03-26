@@ -1,0 +1,88 @@
+{% extends 'billing/base.html' %}
+{% block title %}Invoices{% endblock %}
+{% block page_title %}All Invoices{% endblock %}
+
+{% block content %}
+<!-- Search Form -->
+<div class="card mb-3">
+  <div class="card-body py-3 px-4">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label mb-1" style="font-size:12px;font-weight:700;color:#64748b">SEARCH</label>
+        {{ search_form.query }}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" style="font-size:12px;font-weight:700;color:#64748b">FROM</label>
+        {{ search_form.date_from }}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" style="font-size:12px;font-weight:700;color:#64748b">TO</label>
+        {{ search_form.date_to }}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" style="font-size:12px;font-weight:700;color:#64748b">STATUS</label>
+        {{ search_form.status }}
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm flex-fill">Filter</button>
+        <a href="{% url 'invoice_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <div class="text-muted" style="font-size:14px">{{ invoices|length }} invoice(s)</div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'export_csv' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>CSV</a>
+    <a href="{% url 'create_invoice' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Invoice</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    {% if invoices %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Invoice No</th><th>Customer</th><th>State</th><th>Date</th>
+            <th>Subtotal</th><th>GST</th><th>Total</th><th>Type</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in invoices %}
+          <tr>
+            <td><a href="{% url 'invoice_detail' inv.pk %}" class="mono fw-bold text-decoration-none" style="color:#3b82f6">{{ inv.invoice_number }}</a></td>
+            <td>{{ inv.customer.name }}</td>
+            <td><small>{{ inv.customer.state }}</small></td>
+            <td>{{ inv.date|date:"d M Y" }}</td>
+            <td class="mono">₹{{ inv.subtotal|floatformat:2 }}</td>
+            <td class="mono">₹{{ inv.total_tax|floatformat:2 }}</td>
+            <td class="mono fw-bold">₹{{ inv.total_amount|floatformat:2 }}</td>
+            <td>
+              {% if inv.is_intra_state %}
+                <span class="badge bg-info text-dark">Intra</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Inter</span>
+              {% endif %}
+            </td>
+            <td><span class="badge-status status-{{ inv.status }}">{{ inv.get_status_display }}</span></td>
+            <td>
+              <a href="{% url 'invoice_detail' inv.pk %}" class="btn btn-sm btn-outline-secondary me-1"><i class="bi bi-eye"></i></a>
+              <a href="{% url 'invoice_pdf' inv.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-pdf"></i></a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-search display-4 d-block mb-2"></i>
+      No invoices found.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

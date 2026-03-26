@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #1a202c; }
+    .header { background: #1a365d; color: white; padding: 20px 24px; }
+    .company-name { font-size: 20px; font-weight: bold; }
+    .company-sub { font-size: 11px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+    .invoice-meta { display: flex; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #e2e8f0; }
+    .section-label { font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .billing-section { padding: 14px 24px; border-bottom: 1px solid #e2e8f0; }
+    table { width: 100%; border-collapse: collapse; }
+    .items-table { margin: 0 24px; width: calc(100% - 48px); }
+    .items-table th { background: #1a365d; color: white; padding: 8px 6px; font-size: 10px; text-align: right; }
+    .items-table th:first-child, .items-table th:nth-child(2) { text-align: left; }
+    .items-table td { padding: 7px 6px; border-bottom: 1px solid #f0f4f8; text-align: right; font-size: 11px; }
+    .items-table td:first-child, .items-table td:nth-child(2) { text-align: left; }
+    .items-table tr:nth-child(even) td { background: #f7fafc; }
+    .totals-section { padding: 14px 24px; }
+    .totals-table { width: 50%; margin-left: auto; font-size: 12px; }
+    .totals-table td { padding: 4px 0; }
+    .grand-total td { font-size: 16px; font-weight: bold; border-top: 2px solid #1a365d; padding-top: 8px; }
+    .footer { text-align: center; font-size: 10px; color: #a0aec0; padding: 12px 24px; border-top: 1px dashed #e2e8f0; margin-top: 10px; }
+    .gst-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: bold; }
+    .intra { background: #c6f6d5; color: #276749; }
+    .inter { background: #fefcbf; color: #744210; }
+  </style>
+</head>
+<body>
+<div class="header">
+  <table>
+    <tr>
+      <td style="width:60%">
+        <div class="company-name">{{ company.name }}</div>
+        <div class="company-sub">{{ company.address }}</div>
+        <div class="company-sub">GSTIN: {{ company.gstin }} &nbsp;|&nbsp; {{ company.phone }}</div>
+        <div class="company-sub">{{ company.email }}</div>
+      </td>
+      <td style="text-align:right">
+        <div style="font-size:10px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:2px">Tax Invoice</div>
+        <div style="font-size:22px;font-weight:bold;margin-top:2px">{{ invoice.invoice_number }}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:4px">Date: {{ invoice.date|date:"d M Y" }}</div>
+        {% if invoice.due_date %}<div style="font-size:11px;color:rgba(255,255,255,0.75)">Due: {{ invoice.due_date|date:"d M Y" }}</div>{% endif %}
+      </td>
+    </tr>
+  </table>
+</div>
+
+<div class="billing-section">
+  <table>
+    <tr>
+      <td style="width:50%;vertical-align:top">
+        <div class="section-label">Bill To</div>
+        <div style="font-size:14px;font-weight:bold">{{ invoice.customer.name }}</div>
+        <div style="color:#4a5568;margin-top:2px">{{ invoice.customer.address }}</div>
+        <div style="color:#4a5568">{{ invoice.customer.state }}</div>
+        <div style="color:#4a5568">Ph: {{ invoice.customer.phone }}</div>
+        {% if invoice.customer.gst_number %}<div style="font-weight:bold;margin-top:4px">GSTIN: {{ invoice.customer.gst_number }}</div>{% endif %}
+      </td>
+      <td style="text-align:right;vertical-align:top">
+        <div class="section-label">GST Type</div>
+        {% if invoice.is_intra_state %}
+        <span class="gst-badge intra">Intra-State: CGST + SGST</span>
+        {% else %}
+        <span class="gst-badge inter">Inter-State: IGST</span>
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+</div>
+
+<br>
+<table class="items-table">
+  <thead>
+    <tr>
+      <th style="text-align:left;width:4%">#</th>
+      <th style="text-align:left;width:28%">Item</th>
+      <th style="width:10%">HSN/SAC</th>
+      <th style="width:7%">Qty</th>
+      <th style="width:11%">Rate (₹)</th>
+      <th style="width:11%">Taxable (₹)</th>
+      <th style="width:7%">GST%</th>
+      <th style="width:11%">Tax (₹)</th>
+      <th style="width:11%">Total (₹)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ item.product.name }}</td>
+      <td>{{ item.product.hsn_code|default:"—" }}</td>
+      <td>{{ item.quantity }}</td>
+      <td>{{ item.price }}</td>
+      <td>{{ item.taxable_amount }}</td>
+      <td>{{ item.gst_rate }}%</td>
+      <td>{{ item.tax_amount }}</td>
+      <td><strong>{{ item.total_price }}</strong></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="totals-section">
+  <table class="totals-table">
+    <tr><td>Subtotal</td><td style="text-align:right">₹{{ invoice.subtotal|floatformat:2 }}</td></tr>
+    {% if invoice.is_intra_state %}
+    <tr><td>CGST</td><td style="text-align:right">₹{{ invoice.cgst|floatformat:2 }}</td></tr>
+    <tr><td>SGST</td><td style="text-align:right">₹{{ invoice.sgst|floatformat:2 }}</td></tr>
+    {% else %}
+    <tr><td>IGST</td><td style="text-align:right">₹{{ invoice.igst|floatformat:2 }}</td></tr>
+    {% endif %}
+    <tr class="grand-total">
+      <td>TOTAL</td>
+      <td style="text-align:right">₹{{ invoice.total_amount|floatformat:2 }}</td>
+    </tr>
+  </table>
+
+  <div style="margin-top:14px;font-size:11px;color:#4a5568;font-style:italic">
+    Amount in Words: <strong>{{ amount_words }}</strong>
+  </div>
+  {% if invoice.notes %}
+  <div style="margin-top:8px;font-size:11px;color:#4a5568">
+    <strong>Notes:</strong> {{ invoice.notes }}
+  </div>
+  {% endif %}
+</div>
+
+<div class="footer">
+  This is a computer-generated invoice and does not require a physical signature.<br>
+  Thank you for your business!
+</div>
+</body>
+</html>

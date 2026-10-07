@@ -1,0 +1,48 @@
+{% extends 'billing/base.html' %}
+{% block title %}GST Report{% endblock %}
+{% block page_title %}GST Summary Report{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-end mb-3">
+  <a href="{% url 'export_csv' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+</div>
+<div class="card">
+  <div class="card-header"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Monthly GST Breakup</div>
+  <div class="card-body p-0">
+    {% if monthly %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Month / Year</th><th>Invoices</th><th>Subtotal (₹)</th>
+            <th>CGST (₹)</th><th>SGST (₹)</th><th>IGST (₹)</th>
+            <th>Total Tax (₹)</th><th>Total Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in monthly %}
+          <tr>
+            <td><strong>{{ row.date__month }}/{{ row.date__year }}</strong></td>
+            <td>{{ row.count }}</td>
+            <td class="mono">{{ row.subtotal|floatformat:2 }}</td>
+            <td class="mono">{{ row.cgst|floatformat:2 }}</td>
+            <td class="mono">{{ row.sgst|floatformat:2 }}</td>
+            <td class="mono">{{ row.igst|floatformat:2 }}</td>
+            <td class="mono fw-bold text-danger">{{ row.total_tax|floatformat:2 }}</td>
+            <td class="mono fw-bold">{{ row.total_amount|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-bar-chart display-4 d-block mb-2"></i>
+      No data yet. Create some invoices first.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
